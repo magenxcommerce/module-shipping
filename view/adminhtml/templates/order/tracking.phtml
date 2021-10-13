@@ -3,15 +3,12 @@
  * Copyright © Magento, Inc. All rights reserved.
  * See COPYING.txt for license details.
  */
-?>
-<?php
-/**
- * @var $block Magento\Shipping\Block\Adminhtml\Order\Tracking
- * @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer
- */
-?>
-<?php $scriptString = <<<script
 
+// @codingStandardsIgnoreFile
+
+?>
+<?php /** @var $block Magento\Shipping\Block\Adminhtml\Order\Tracking */?>
+<script>
 require(['prototype'], function(){
 
     //<![CDATA[
@@ -63,11 +60,7 @@ require(['prototype'], function(){
     //]]>
 
 });
-
-script;
-?>
-<?= /* @noEscape */ $secureRenderer->renderTag('script', [], $scriptString, false) ?>
-
+</script>
 <script id="track_row_template" type="text/x-magento-template">
     <tr>
         <td class="col-carrier">
@@ -76,7 +69,7 @@ script;
                     class="select admin__control-select carrier"
                     disabled="disabled">
                 <?php foreach ($block->getCarriers() as $_code => $_name): ?>
-                    <option value="<?= $block->escapeHtmlAttr($_code) ?>"><?= $block->escapeHtml($_name) ?></option>
+                    <option value="<?= /* @escapeNotVerified */ $_code ?>"><?= $block->escapeHtml($_name) ?></option>
                 <?php endforeach; ?>
             </select>
         </td>
@@ -101,7 +94,7 @@ script;
                 type="button"
                 class="action-default action-delete"
                 onclick="trackingControl.deleteRow(event);return false">
-                <span><?= $block->escapeHtml(__('Delete')) ?></span>
+                <span><?= /* @escapeNotVerified */ __('Delete') ?></span>
             </button>
         </td>
     </tr>
@@ -111,10 +104,10 @@ script;
     <table class="data-table admin__control-table" id="tracking_numbers_table">
         <thead>
         <tr class="headings">
-            <th class="col-carrier"><?= $block->escapeHtml(__('Carrier')) ?></th>
-            <th class="col-title"><?= $block->escapeHtml(__('Title')) ?></th>
-            <th class="col-number"><?= $block->escapeHtml(__('Number')) ?></th>
-            <th class="col-delete"><?= $block->escapeHtml(__('Action')) ?></th>
+            <th class="col-carrier"><?= /* @escapeNotVerified */ __('Carrier') ?></th>
+            <th class="col-title"><?= /* @escapeNotVerified */ __('Title') ?></th>
+            <th class="col-number"><?= /* @escapeNotVerified */ __('Number') ?></th>
+            <th class="col-delete"><?= /* @escapeNotVerified */ __('Action') ?></th>
         </tr>
         </thead>
         <tfoot>
@@ -126,8 +119,7 @@ script;
         </tbody>
     </table>
 </div>
-<?php $scriptString = <<<script
-
+<script>
 require([
     'mage/template',
     'prototype'
@@ -138,7 +130,4 @@ require([
     //]]>
 
 });
-
-script;
-?>
-<?= /* @noEscape */ $secureRenderer->renderTag('script', [], $scriptString, false) ?>
+</script>

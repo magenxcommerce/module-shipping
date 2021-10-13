@@ -1,27 +1,14 @@
 <?php
 /**
+ *
  * Copyright © Magento, Inc. All rights reserved.
  * See COPYING.txt for license details.
  */
-declare(strict_types=1);
-
 namespace Magento\Shipping\Controller\Adminhtml\Order\Shipment;
 
 use Magento\Backend\App\Action;
-use Magento\Framework\App\Action\HttpPostActionInterface;
-use Magento\Framework\App\ObjectManager;
-use Magento\Framework\Controller\ResultFactory;
-use Magento\Framework\Controller\ResultInterface;
-use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\Serialize\SerializerInterface;
-use Magento\Sales\Api\Data\ShipmentTrackInterfaceFactory;
-use Magento\Sales\Api\ShipmentRepositoryInterface;
-use Magento\Shipping\Controller\Adminhtml\Order\ShipmentLoader;
 
-/**
- * Add new tracking number to shipment controller.
- */
-class AddTrack extends Action implements HttpPostActionInterface
+class AddTrack extends \Magento\Backend\App\Action
 {
     /**
      * Authorization level of a basic admin session
@@ -31,54 +18,27 @@ class AddTrack extends Action implements HttpPostActionInterface
     const ADMIN_RESOURCE = 'Magento_Sales::shipment';
 
     /**
-     * @var ShipmentLoader
+     * @var \Magento\Shipping\Controller\Adminhtml\Order\ShipmentLoader
      */
     protected $shipmentLoader;
 
     /**
-     * @var ShipmentRepositoryInterface
-     */
-    private $shipmentRepository;
-
-    /**
-     * @var ShipmentTrackInterfaceFactory
-     */
-    private $trackFactory;
-
-    /**
-     * @var SerializerInterface
-     */
-    private $serializer;
-
-    /**
      * @param Action\Context $context
-     * @param ShipmentLoader $shipmentLoader
-     * @param ShipmentRepositoryInterface|null $shipmentRepository
-     * @param ShipmentTrackInterfaceFactory|null $trackFactory
-     * @param SerializerInterface|null $serializer
+     * @param \Magento\Shipping\Controller\Adminhtml\Order\ShipmentLoader $shipmentLoader
      */
     public function __construct(
         Action\Context $context,
-        ShipmentLoader $shipmentLoader,
-        ShipmentRepositoryInterface $shipmentRepository = null,
-        ShipmentTrackInterfaceFactory $trackFactory = null,
-        SerializerInterface $serializer = null
+        \Magento\Shipping\Controller\Adminhtml\Order\ShipmentLoader $shipmentLoader
     ) {
-        parent::__construct($context);
-
         $this->shipmentLoader = $shipmentLoader;
-        $this->shipmentRepository = $shipmentRepository ?: ObjectManager::getInstance()
-            ->get(ShipmentRepositoryInterface::class);
-        $this->trackFactory = $trackFactory ?: ObjectManager::getInstance()
-            ->get(ShipmentTrackInterfaceFactory::class);
-        $this->serializer = $serializer ?: ObjectManager::getInstance()
-            ->get(SerializerInterface::class);
+        parent::__construct($context);
     }
 
     /**
-     * Add new tracking number action.
+     * Add new tracking number action
      *
-     * @return ResultInterface
+     * @return void
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function execute()
     {
@@ -86,29 +46,28 @@ class AddTrack extends Action implements HttpPostActionInterface
             $carrier = $this->getRequest()->getPost('carrier');
             $number = $this->getRequest()->getPost('number');
             $title = $this->getRequest()->getPost('title');
-
             if (empty($carrier)) {
-                throw new LocalizedException(__('Please specify a carrier.'));
+                throw new \Magento\Framework\Exception\LocalizedException(__('Please specify a carrier.'));
             }
             if (empty($number)) {
-                throw new LocalizedException(__('Please enter a tracking number.'));
+                throw new \Magento\Framework\Exception\LocalizedException(__('Please enter a tracking number.'));
             }
-
             $this->shipmentLoader->setOrderId($this->getRequest()->getParam('order_id'));
             $this->shipmentLoader->setShipmentId($this->getRequest()->getParam('shipment_id'));
             $this->shipmentLoader->setShipment($this->getRequest()->getParam('shipment'));
             $this->shipmentLoader->setTracking($this->getRequest()->getParam('tracking'));
             $shipment = $this->shipmentLoader->load();
             if ($shipment) {
-                $track = $this->trackFactory->create()->setNumber(
+                $track = $this->_objectManager->create(
+                    \Magento\Sales\Model\Order\Shipment\Track::class
+                )->setNumber(
                     $number
                 )->setCarrierCode(
                     $carrier
                 )->setTitle(
                     $title
                 );
-                $shipment->addTrack($track);
-                $this->shipmentRepository->save($shipment);
+                $shipment->addTrack($track)->save();
 
                 $this->_view->loadLayout();
                 $this->_view->getPage()->getConfig()->getTitle()->prepend(__('Shipments'));
@@ -119,18 +78,16 @@ class AddTrack extends Action implements HttpPostActionInterface
                     'message' => __('We can\'t initialize shipment for adding tracking number.'),
                 ];
             }
-        } catch (LocalizedException $e) {
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
             $response = ['error' => true, 'message' => $e->getMessage()];
         } catch (\Exception $e) {
             $response = ['error' => true, 'message' => __('Cannot add tracking number.')];
         }
-
-        if (\is_array($response)) {
-            $response = $this->serializer->serialize($response);
-
-            return $this->resultFactory->create(ResultFactory::TYPE_JSON)->setJsonData($response);
+        if (is_array($response)) {
+            $response = $this->_objectManager->get(\Magento\Framework\Json\Helper\Data::class)->jsonEncode($response);
+            $this->getResponse()->representJson($response);
+        } else {
+            $this->getResponse()->setBody($response);
         }
-
-        return $this->resultFactory->create(ResultFactory::TYPE_RAW)->setContents($response);
     }
 }
